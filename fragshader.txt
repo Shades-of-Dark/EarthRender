@@ -1,0 +1,26 @@
+#version 330 core
+
+
+in vec2 uvs;
+out vec4 f_color;
+
+uniform sampler2D tex;
+
+vec2 u_resolution = vec2(800, 600);
+
+
+
+float circleShape(float radius, vec2 position) {
+    float value = distance(position, vec2(0.5));
+    return step(radius, value);
+}
+
+void main() {
+    vec2 pixelCoord = gl_FragCoord.xy / u_resolution;
+    float circleWidth = 0.2;
+
+    float circle = circleShape(circleWidth, pixelCoord);
+    vec3 color = vec3(circle);
+
+    vec4 f_color = vec4(color, 1.0);
+}
