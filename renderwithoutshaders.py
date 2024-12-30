@@ -20,14 +20,12 @@ PLANET_BASE_COLOR = (0, 255, 0)
 
 PLANET_SIZE = 66
 LIGHT_DIRECTION = pygame.math.Vector3(0, 0, 1)  # Direction of light (example: from top-right)
-ROTATION_SPEED = 0.002
+ROTATION_SPEED = 0.002  # rotation speed of earth
 
-vectors = []
-scaleFactor = 3
+scaleFactor = 3  # how detailed our earth will be, higher values will result in a grainier earth
 smallDisplay = pygame.Surface((width // scaleFactor, height // scaleFactor))
 
-GUST = pygame.USEREVENT + 1
-pygame.time.set_timer(GUST, 10000)
+
 def generate_rotation_matrix(angle_x, angle_y, angle_z):
     rotation_x = [[1, 0, 0],
                   [0, m.cos(angle_x), -m.sin(angle_x)],
@@ -45,10 +43,7 @@ def generate_rotation_matrix(angle_x, angle_y, angle_z):
 
 
 # size = 2
-# Generate two patterns with different scales
 
-
-# Combine them
 dither_texture = pygame.image.load("bayer_2x2.png").convert()
 
 
@@ -132,7 +127,6 @@ def draw_circle(display, radius, position, pallette, light_dir, rotationmatrix, 
 
                     normal.normalize()
 
-
                     # Apply rotation matrix
                     result = np.dot(rotationmatrix, normal)
                     normal = pygame.math.Vector3(result[0], result[1], result[2])
@@ -169,6 +163,7 @@ def draw_circle(display, radius, position, pallette, light_dir, rotationmatrix, 
                         # Set the pixel color for clouds
                         display.set_at((int(centerPos[0]), int(centerPos[1])), tuple(cloud_color))
 
+
 # Main game loop
 clock = pygame.time.Clock()
 angle = 0
@@ -176,11 +171,11 @@ running = True
 last_time = time.time()
 
 pos = pygame.math.Vector2(smallDisplay.get_width() // 2, smallDisplay.get_height() // 2)
-rotx = 0
+lightAngle = 0
 
 earthPallette = pygame.image.load("earth.png").convert()
 
-angle_x, angle_y, angle_z = 0, 0, 0
+orbit_x, orbit_y, orbit_z = 0, 0, 0
 cloudShiftx, cloudShifty, cloudShiftz = 0, 0, 0
 # normal.z = m.sqrt(1 - (normal.x ** 2 + normal.y ** 2))
 wind = random.randint(-1, 1)
@@ -193,29 +188,30 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        if event.type == GUST:
-            time_factor = pygame.time.get_ticks() / 1000.0  # Time in seconds
-            wind = random.randint(-1, 1) * m.sin(time_factor * 2)
 
-    LIGHT_DIRECTION = pygame.math.Vector3(m.sin(rotx), 0, m.cos(rotx)) # light vector
+    LIGHT_DIRECTION = pygame.math.Vector3(m.sin(lightAngle), 0, m.cos(lightAngle))  # light vector
     LIGHT_DIRECTION.normalize()
 
-    rotationMatrix = generate_rotation_matrix(angle_x, angle_y, angle_z) # rotation of earth
-    angle_y += ROTATION_SPEED * dt
+    lightAngle -= ROTATION_SPEED * dt  # move the light source
+    if lightAngle > 2 * m.pi:
+        lightAngle -= 2 * m.pi * dt
 
-    rotx -= ROTATION_SPEED * dt # move the light source
-    if rotx > 2 * m.pi:
-        rotx -= 2 * m.pi * dt
+    # applies the angles into the rotational matrix
+    rotationMatrix = generate_rotation_matrix(orbit_x, orbit_y, orbit_z)  # rotation of earth
+    orbit_y += ROTATION_SPEED * dt  # rotates our earth's y angle
 
+    # shift noise lookups for cloud
     cloudShifty += 0.0008 * dt
     cloudShiftx += 0.0005 * dt
     cloudShiftz += 0.0002 * dt
+
     # Rotate and project points
     pygame.display.set_caption("3D Planet Renderer " + str(clock.get_fps()))
     draw_circle(smallDisplay, PLANET_SIZE, pos, earthPallette, LIGHT_DIRECTION, rotationMatrix, cloudShiftx,
                 cloudShifty, cloudShiftz,
                 dither_texture)
     screen.blit(pygame.transform.scale(smallDisplay, (width, height)), (0, 0))
+
     pygame.display.flip()
     clock.tick(60)
 
